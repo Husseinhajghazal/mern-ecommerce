@@ -1,0 +1,175 @@
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import styles from "../../styles/styles";
+import { motion } from "framer-motion";
+import ProductDetailCard from "./ProductDetailCard";
+import {
+  AiFillHeart,
+  AiOutlineEye,
+  AiOutlineHeart,
+  AiOutlineShoppingCart,
+} from "react-icons/ai";
+import Ratings from "../Products/Ratings";
+import { AnimatePresence } from "framer-motion";
+
+import { useDispatch, useSelector } from "react-redux";
+import {
+  addToWishlist,
+  removeFromWishlist,
+} from "../../redux/actions/wishlist";
+import { addToCart } from "../../redux/actions/cart";
+import { toast } from "react-toastify";
+
+const ProductCard = ({ data, isEvent }) => {
+  const { wishlist } = useSelector((state) => state.wishlist);
+  const { cart } = useSelector((state) => state.cart);
+  const [click, setClick] = useState(false);
+  const [open, setOpen] = useState(false);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (wishlist && wishlist.find((i) => i._id === data?._id)) {
+      setClick(true);
+    } else {
+      setClick(false);
+    }
+  }, [data?._id, wishlist]);
+
+  const removeFromWishlistHandler = (data) => {
+    setClick(!click);
+    dispatch(removeFromWishlist(data));
+  };
+
+  const addToWishlistHandler = (data) => {
+    setClick(!click);
+    dispatch(addToWishlist(data));
+  };
+
+  const addToCartHandler = (id) => {
+    const isItemExists = cart && cart.find((i) => i._id === id);
+    if (isItemExists) {
+      toast.error("Item already in cart!");
+    } else {
+      if (data.stock < 1) {
+        toast.error("Product stock limited!");
+      } else {
+        const cartData = { ...data, qty: 1 };
+        dispatch(addToCart(cartData));
+        toast.success("Item added to cart successfully!");
+      }
+    }
+  };
+
+  return (
+    <>
+      <div className="w-full h-[360px] bg-white rounded-lg shadow-sm p-4 relative cursor-pointer">
+        <Link to={isEvent ? `/event/${data?._id}` : `/product/${data?._id}`}>
+          <motion.div
+            whileHover={{
+              scale: 1.05,
+            }}
+            className="w-full h-[200px] overflow-hidden"
+          >
+            <img
+              loading="lazy"
+              src={`${data?.images && data?.images[0]}`}
+              alt=""
+              className="w-full h-full object-contain m-auto text-center"
+            />
+          </motion.div>
+        </Link>
+        <Link to={`/shop/preview/${data?.shopId}`}>
+          <h5
+            className={`${styles.shop_name} hover:text-blue-400 duration-300`}
+          >
+            {data?.shop.name}
+          </h5>
+        </Link>
+        <Link to={isEvent ? `/event/${data?._id}` : `/product/${data?._id}`}>
+          <h4 className="pb-2 font-[500]">
+            {data?.name.length > 40
+              ? data?.name.slice(0, 40) + "..."
+              : data?.name}
+          </h4>
+          {!isEvent && (
+            <div className="flex">
+              <Ratings rating={data?.ratings} />
+            </div>
+          )}
+          <div className="py-2 flex items-center justify-between">
+            <div className="flex">
+              <h5 className={`${styles.productDiscountPrice}`}>
+                {data?.originalPrice === 0
+                  ? data?.originalPrice
+                  : data?.discountPrice}
+                $
+              </h5>
+              <h4 className={`${styles.price}`}>
+                {data?.originalPrice ? data?.originalPrice + " $" : null}
+              </h4>
+            </div>
+            <span className="font-[400] text-[17px] text-[#d55b45] ">
+              {data?.sold_out} sold
+            </span>
+          </div>
+        </Link>
+        {!isEvent && (
+          <div>
+            <motion.div
+              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.2 }}
+              className="cursor-pointer absolute right-2 top-5"
+            >
+              {click ? (
+                <AiFillHeart
+                  size={22}
+                  onClick={() => removeFromWishlistHandler(data)}
+                  color="red"
+                  title="Remove from wishlist"
+                />
+              ) : (
+                <AiOutlineHeart
+                  size={22}
+                  onClick={() => addToWishlistHandler(data)}
+                  color="#333"
+                  title="Add to wishlist"
+                />
+              )}
+            </motion.div>
+            <motion.div
+              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.2 }}
+              className="cursor-pointer absolute right-2 top-14"
+            >
+              <AiOutlineEye
+                size={22}
+                onClick={() => setOpen(!open)}
+                color="#333"
+                title="Quick view"
+              />
+            </motion.div>
+            <motion.div
+              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.2 }}
+              className="cursor-pointer absolute right-2 top-24"
+            >
+              <AiOutlineShoppingCart
+                onClick={() => addToCartHandler(data?._id)}
+                size={25}
+                color="#444"
+                title="Add to cart"
+              />
+            </motion.div>
+            <AnimatePresence>
+              {open ? (
+                <ProductDetailCard setOpen={setOpen} data={data} />
+              ) : null}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
+    </>
+  );
+};
+
+export default ProductCard;
